@@ -1,4 +1,4 @@
-# -SP-awake_system
+# [SP]-awake_system
 SP(small programing) 
 这是一个 屏幕自监督程序，
 他的本质是通过定时（或不定随机时段）的屏幕截图。
@@ -9,3 +9,5 @@ SP(small programing)
 需要的只有python 环境，需要3以上。
 
 修改后缀名，改为pyw，然后双击它就可以运行该程序。
+我不能传文件夹，
+但是下载使用的朋友一定要记得在代码所在的路径创建一个png的文件夹
