@@ -1,7 +1,7 @@
 # [SP]-awake_system
 SP(small programing) for awaken yourself.
 
-baickground
+Background
 ====
 
 这是一个 自觉系统 程序. 
@@ -28,13 +28,13 @@ Install
 完成下载库包。入门python的同学，详情可以搜索有关pip的使用方法
 
 
-<简便使用>
+<about pyw！>
 ====
 运行成功后
 
 修改后缀名，改为pyw，当成exe双击点就可以了。
 
-<要注意点>
+<be care for this！>
 ====
 1.但是下载使用的朋友一定要记得在代码所在的路径创建一个png的文件夹
 
