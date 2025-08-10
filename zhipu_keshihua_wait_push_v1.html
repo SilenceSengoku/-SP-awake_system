@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>觉知时光 - 时间管理可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f8f8f8;
+            color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 包豪斯几何背景 */
+        .geometric-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .geo-shape {
+            position: absolute;
+            background: #333;
+        }
+
+        .geo-shape.circle {
+            border-radius: 50%;
+        }
+
+        .geo-shape.triangle {
+            width: 0;
+            height: 0;
+            background: transparent;
+            border-style: solid;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 头部 */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 200;
+            letter-spacing: 0.2em;
+            margin-bottom: 5px;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #666;
+            letter-spacing: 0.1em;
+        }
+
+        /* API配置区域 */
+        .api-config {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .api-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+
+        .api-button {
+            padding: 8px 16px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+
+        .api-button:hover {
+            background: #555;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .status-dot.connected {
+            background: #4caf50;
+        }
+
+        .status-dot.error {
+            background: #f44336;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        /* 左侧面板 */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* 右侧面板 */
+        .right-panel {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* 数据卡片 */
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .data-card {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .data-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #333;
+            transition: width 0.3s ease;
+        }
+
+        .data-card:hover::before {
+            width: 100%;
+            opacity: 0.05;
+        }
+
+        .data-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 30px rgba(0,0,0,0.1);
+        }
+
+        .data-value {
+            font-size: 2.2rem;
+            font-weight: 100;
+            margin: 5px 0;
+            color: #1a1a1a;
+        }
+
+        .data-label {
+            font-size: 0.875rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .data-trend {
+            font-size: 0.875rem;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trend-up {
+            color: #4caf50;
+        }
+
+        .trend-down {
+            color: #f44336;
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 300;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 0.1em;
+            flex-shrink: 0;
+        }
+
+        /* 时间分布图表 */
+        .time-distribution {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 200px;
+            padding: 10px;
+            position: relative;
+            flex: 1;
+        }
+
+        .time-bar {
+            width: 40px;
+            background: #333;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .time-bar:hover {
+            opacity: 0.8;
+            transform: scaleY(1.05);
+        }
+
+        .time-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .time-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.875rem;
+            color: #333;
+            font-weight: 300;
+        }
+
+        /* 进度环 */
+        .progress-ring {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+        }
+
+        .progress-ring-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .progress-ring-circle {
+            stroke: #e0e0e0;
+            stroke-width: 4;
+            fill: transparent;
+            r: 65;
+            cx: 75;
+            cy: 75;
+        }
+
+        .progress-ring-progress {
+            stroke: #333;
+            stroke-width: 4;
+            fill: transparent;
+            r: 65;
+            cx: 75;
+            cy: 75;
+            stroke-dasharray: 408.41;
+            stroke-dashoffset: 408.41;
+            transform: rotate(-90deg);
+            transform-origin: 75px 75px;
+            transition: stroke-dashoffset 1s ease;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .progress-value {
+            font-size: 1.8rem;
+            font-weight: 100;
+        }
+
+        .progress-label {
+            font-size: 0.875rem;
+            color: #666;
+        }
+
+        /* 每日反思 */
+        .reflection-section {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .reflection-quote {
+            font-size: 1rem;
+            font-weight: 300;
+            font-style: italic;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            flex-shrink: 0;
+        }
+
+        .reflection-input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: none;
+            flex: 1;
+            transition: border-color 0.3s ease;
+        }
+
+        .reflection-input:focus {
+            outline: none;
+            border-color: #333;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            
+            .left-panel {
+                flex-direction: row;
+                gap: 10px;
+            }
+            
+            .data-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .right-panel {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .main-content {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .left-panel {
+                flex-direction: column;
+            }
+            
+            .data-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .right-panel {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .time-distribution {
+                overflow-x: auto;
+                justify-content: flex-start;
+                padding: 10px 5px;
+            }
+
+            .api-config {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .api-input {
+                min-width: auto;
+            }
+        }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- 包豪斯几何背景 -->
+    <div class="geometric-bg" id="geometricBg"></div>
+
+    <div class="container">
+        <header class="fade-in">
+            <h1>觉知时光</h1>
+            <p class="subtitle">柳比耶夫时间管理 · 数据可视化</p>
+        </header>
+
+        <!-- API配置区域 -->
+        <div class="api-config fade-in">
+            <label for="apiUrl">API地址:</label>
+            <input type="text" id="apiUrl" class="api-input" value="http://localhost:8000/api/dashboard" placeholder="输入API地址">
+            <button class="api-button" onclick="fetchData()">获取数据</button>
+            <button class="api-button" onclick="toggleAutoRefresh()">自动刷新</button>
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">未连接</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 左侧面板 -->
+            <div class="left-panel">
+                <!-- 数据概览卡片 -->
+                <div class="data-grid">
+                    <div class="data-card fade-in" style="animation-delay: 0.1s">
+                        <div class="data-label">今日专注时长</div>
+                        <div class="data-value" id="focusHour">--</div>
+                        <div class="data-trend trend-up">
+                            <span>实时更新</span>
+                        </div>
+                    </div>
+                    
+                    <div class="data-card fade-in" style="animation-delay: 0.2s">
+                        <div class="data-label">本周完成率</div>
+                        <div class="data-value" id="completionRate">--%</div>
+                        <div class="data-trend trend-up">
+                            <span>本周进度</span>
+                        </div>
+                    </div>
+                    
+                    <div class="data-card fade-in" style="animation-delay: 0.3s">
+                        <div class="data-label">连续记录天数</div>
+                        <div class="data-value">42</div>
+                        <div class="data-trend">
+                            <span>保持觉知</span>
+                        </div>
+                    </div>
+                    
+                    <div class="data-card fade-in" style="animation-delay: 0.4s">
+                        <div class="data-label">时间利用效率</div>
+                        <div class="data-value" id="efficiency">--%</div>
+                        <div class="data-trend trend-up">
+                            <span>持续优化</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 每日反思 -->
+                <div class="reflection-section fade-in" style="animation-delay: 0.7s">
+                    <h2 class="chart-title">今日反思</h2>
+                    <p class="reflection-quote">"时间不是用来消磨的，而是用来创造的。每一分钟的觉知，都是对生命的尊重。"</p>
+                    <textarea class="reflection-input" placeholder="记录今天的感悟与收获..."></textarea>
+                </div>
+            </div>
+
+            <!-- 右侧面板 -->
+            <div class="right-panel">
+                <!-- 时间分布图表 -->
+                <div class="chart-container fade-in" style="animation-delay: 0.5s">
+                    <h2 class="chart-title">今日时间分布</h2>
+                    <div class="time-distribution" id="timeDistribution"></div>
+                </div>
+
+                <!-- 目标完成度 -->
+                <div class="chart-container fade-in" style="animation-delay: 0.6s">
+                    <h2 class="chart-title">本周目标完成度</h2>
+                    <div class="progress-ring-container">
+                        <svg class="progress-ring">
+                            <circle class="progress-ring-circle"></circle>
+                            <circle class="progress-ring-progress" id="progressRing"></circle>
+                        </svg>
+                        <div class="progress-text">
+                            <div class="progress-value" id="progressValue">--%</div>
+                            <div class="progress-label">已完成</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let isAutoRefreshing = false;
+
+        // 生成包豪斯几何背景
+        function createGeometricBackground() {
+            const bg = document.getElementById('geometricBg');
+            const shapes = ['circle', 'square', 'triangle'];
+            const colors = ['#333', '#666', '#999'];
+            
+            bg.innerHTML = '';
+            
+            for (let i = 0; i < 20; i++) {
+                const shape = document.createElement('div');
+                const shapeType = shapes[Math.floor(Math.random() * shapes.length)];
+                shape.className = `geo-shape ${shapeType}`;
+                
+                const size = Math.random() * 100 + 20;
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * window.innerHeight;
+                const rotation = Math.random() * 360;
+                
+                shape.style.width = size + 'px';
+                shape.style.height = size + 'px';
+                shape.style.left = x + 'px';
+                shape.style.top = y + 'px';
+                shape.style.transform = `rotate(${rotation}deg)`;
+                
+                if (shapeType === 'triangle') {
+                    shape.style.borderLeftWidth = size/2 + 'px';
+                    shape.style.borderRightWidth = size/2 + 'px';
+                    shape.style.borderBottomWidth = size + 'px';
+                    shape.style.borderLeftColor = 'transparent';
+                    shape.style.borderRightColor = 'transparent';
+                    shape.style.borderBottomColor = colors[Math.floor(Math.random() * colors.length)];
+                } else {
+                    shape.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                }
+                
+                bg.appendChild(shape);
+            }
+        }
+
+        // 更新状态指示器
+        function updateStatus(status, message) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            
+            dot.className = `status-dot ${status}`;
+            text.textContent = message;
+        }
+
+        // 获取数据
+        async function fetchData() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            if (!apiUrl) {
+                alert('请输入API地址');
+                return;
+            }
+
+            updateStatus('', '连接中...');
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                updateUI(data);
+                updateStatus('connected', '已连接');
+                
+            } catch (error) {
+                console.error('获取数据失败:', error);
+                updateStatus('error', '连接失败');
+                alert(`获取数据失败: ${error.message}`);
+            }
+        }
+
+        // 更新UI
+        function updateUI(data) {
+            // 更新数据卡片
+            document.getElementById('focusHour').textContent = `${data.currentday_focus_hour}h`;
+            document.getElementById('completionRate').textContent = `${Math.round(data.this_week_completion_rate)}%`;
+            document.getElementById('efficiency').textContent = `${Math.round(data.time_utilization_efficiency)}%`;
+            document.getElementById('progressValue').textContent = `${Math.round(data.this_week_completion_rate)}%`;
+
+            // 更新时间分布图表
+            updateTimeDistribution(data);
+            
+            // 更新进度环
+            setProgressRing(data.this_week_completion_rate / 100);
+        }
+
+        // 创建时间分布柱状图
+        function updateTimeDistribution(data) {
+            const container = document.getElementById('timeDistribution');
+            const categories = [
+                { label: '工作', value: data.work_hour, maxHeight: 180 },
+                { label: '学习', value: data.study_hour, maxHeight: 180 },
+                { label: '运动', value: data.sport_hour, maxHeight: 180 },
+                { label: '阅读', value: data.read_hour, maxHeight: 180 },
+                { label: '休息', value: data.rest_hour, maxHeight: 180 },
+                { label: '社交', value: data.social_hour, maxHeight: 180 }
+            ];
+            
+            // 找出最大值用于比例计算
+            const maxValue = Math.max(...categories.map(cat => cat.value));
+            
+            container.innerHTML = '';
+            
+            categories.forEach((cat, index) => {
+                const height = maxValue > 0 ? (cat.value / maxValue) * cat.maxHeight : 0;
+                
+                const bar = document.createElement('div');
+                bar.className = 'time-bar';
+                bar.style.height = '0px';
+                bar.innerHTML = `
+                    <div class="time-value">${cat.value}h</div>
+                    <div class="time-label">${cat.label}</div>
+                `;
+                
+                container.appendChild(bar);
+                
+                // 动画效果
+                setTimeout(() => {
+                    bar.style.height = height + 'px';
+                }, 100 * index);
+            });
+        }
+
+        // 设置进度环
+        function setProgressRing(progress) {
+            const ring = document.getElementById('progressRing');
+            const circumference = 2 * Math.PI * 65;
+            const offset = circumference - (progress * circumference);
+            
+            setTimeout(() => {
+                ring.style.strokeDashoffset = offset;
+            }, 500);
+        }
+
+        // 切换自动刷新
+        function toggleAutoRefresh() {
+            const button = event.target;
+            
+            if (isAutoRefreshing) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                isAutoRefreshing = false;
+                button.textContent = '自动刷新';
+                button.style.background = '#333';
+            } else {
+                fetchData();
+                autoRefreshInterval = setInterval(fetchData, 30000); // 30秒刷新一次
+                isAutoRefreshing = true;
+                button.textContent = '停止刷新';
+                button.style.background = '#f44336';
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            createGeometricBackground();
+            
+            // 初始化默认数据显示
+            const defaultData = {
+                currentday_focus_hour: 0,
+                this_week_completion_rate: 0,
+                time_utilization_efficiency: 0,
+                work_hour: 0,
+                study_hour: 0,
+                sport_hour: 0,
+                read_hour: 0,
+                rest_hour: 0,
+                social_hour: 0
+            };
+            updateTimeDistribution(defaultData);
+            setProgressRing(0);
+            
+            // 窗口调整时重新生成背景
+            window.addEventListener('resize', function() {
+                createGeometricBackground();
+            });
+            
+            // 回车键获取数据
+            document.getElementById('apiUrl').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    fetchData();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
